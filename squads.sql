@@ -1,0 +1,237 @@
+-- ----
+-- USER
+-- ----
+CREATE TABLE USERS
+(
+  `UserName`        VARCHAR(30) NOT NULL PRIMARY KEY,
+  `FirstName`       VARCHAR(255),
+  `LastName`        VARCHAR(255),
+  `Email`           VARCHAR(255),
+  `Password`        VARCHAR(40),
+  `Token`  	        VARCHAR(255),
+  `Auth_Token`      VARCHAR(255),
+  `Reset_Token`     VARCHAR(255),
+  `Authenticated`   tinyint(1),
+  `Activated`       tinyint(1),
+  `LevelOfAccess`   VARCHAR(30),
+  `About`           TEXT,
+  `ProfilePicturePath` TINYTEXT
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+
+
+-- -------
+-- FRIENDS
+-- -------
+CREATE TABLE FRIENDS
+(
+  `User`    VARCHAR(30),
+  `Friend`  VARCHAR(30),
+  FOREIGN KEY (`User`) REFERENCES USERS(`Username`) ON DELETE CASCADE,
+  FOREIGN KEY (`Friend`) REFERENCES USERS(`Username`) ON DELETE CASCADE,
+  PRIMARY KEY (`User`, `Friend`)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+CREATE TABLE FRIEND_REQUESTS
+(
+  `From_User` VARCHAR(30),
+  `To_User`   VARCHAR(30),
+  FOREIGN KEY (`From_User`) REFERENCES USERS(`Username`),
+  FOREIGN KEY (`To_User`) REFERENCES USERS(`Username`),
+  PRIMARY KEY (`From_User`, `To_User`)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+
+
+-- -----
+-- CLANS
+-- -----
+CREATE TABLE CLANS
+(
+  `ClanName`  VARCHAR(30) NOT NULL PRIMARY KEY,
+  `UserAdmin` VARCHAR(30),
+  `Description`  TEXT,
+  FOREIGN KEY (`UserAdmin`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX CLANS_ADMIN_INDEX ON CLANS (`UserAdmin`); 
+
+
+CREATE TABLE USER_CLAN
+(
+  `User` VARCHAR(30),
+  `Clan` VARCHAR(30),
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE,
+  FOREIGN KEY (`Clan`) REFERENCES CLANS(`ClanName`) ON DELETE CASCADE,
+  PRIMARY KEY (`User`, `Clan`)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+
+
+-- -----
+-- GAME
+-- -----
+CREATE TABLE PUBLISHERS
+(
+  `Name` VARCHAR(255) NOT NULL PRIMARY KEY
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+CREATE TABLE DEVELOPERS
+(
+  `Name`      VARCHAR(255) NOT NULL PRIMARY KEY,
+  `Publisher` VARCHAR(255),
+  FOREIGN KEY (`Publisher`) REFERENCES PUBLISHERS(`Name`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+CREATE TABLE GAMES
+(
+  `Title`         VARCHAR(255) NOT NULL PRIMARY KEY,
+  `Description`   TEXT,
+  `Developer`     VARCHAR(255),
+  FOREIGN KEY (`Developer`) REFERENCES DEVELOPERS(`Name`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+CREATE TABLE GAME_SERVERS
+(
+  `Game`    VARCHAR(255),
+  `Server` VARCHAR(30),
+  FOREIGN KEY (`Game`) REFERENCES GAMES(`Title`) ON DELETE CASCADE,
+  PRIMARY KEY (`Game`, `Server`)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+CREATE TABLE GAME_GENRES
+(
+  `Game`    VARCHAR(255),
+  `Genre`   VARCHAR(255),
+  FOREIGN KEY (`Game`) REFERENCES GAMES(`Title`) ON DELETE CASCADE,
+  PRIMARY KEY (`Game`, `Genre`) 
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+
+
+-- -------
+-- LFG/LFM
+-- -------
+CREATE TABLE SOLOS
+(
+  `IGN`     VARCHAR(30) NOT NULL PRIMARY KEY,
+  `User`    VARCHAR(255),
+  `Server`  VARCHAR(30),
+  `Status`  VARCHAR(30),
+  `Game`    VARCHAR(255),
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE,
+  FOREIGN KEY (`Game`) REFERENCES GAMES(`Title`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX SOLO_GAME_INDEX ON SOLOS (`Game`);
+CREATE INDEX SOLO_USER_INDEX ON SOLOS (`User`);
+
+CREATE TABLE GROUPS
+(
+  `Name`         VARCHAR(255) NOT NULL PRIMARY KEY,
+  `Admin`        VARCHAR(255),
+  `MaxSize`      INT,
+  `Status`       VARCHAR(30),
+  `Description`  TEXT,
+  `Game`         VARCHAR(255),
+  `Server`       VARCHAR(30),
+  FOREIGN KEY (`Admin`) REFERENCES SOLOS(`IGN`) ON DELETE CASCADE,
+  FOREIGN KEY (`Game`) REFERENCES GAMES(`TITLE`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX GROUP_GAME_INDEX ON GROUPS (`Game`);
+
+CREATE TABLE SOLO_GROUP
+(
+  `Solo`    VARCHAR(30),
+  `Group`   VARCHAR(255),
+  FOREIGN KEY (`Solo`) REFERENCES SOLOS(`IGN`) ON DELETE CASCADE,
+  FOREIGN KEY (`Group`) REFERENCES GROUPS(`Name`) ON DELETE CASCADE,
+  PRIMARY KEY (`Solo`, `Group`)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+
+-- -----
+-- POSTS
+-- -----
+CREATE TABLE POSTS
+(
+  `Post_ID`         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `User`            VARCHAR(30),
+  `Date_Created`    TIMESTAMP,
+  `LevelOfAccess`   VARCHAR(30),
+  `Text`            TEXT,
+  `MediaType`       VARCHAR(30),
+  `MediaPath`       TINYTEXT,
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX idx_posts_users ON POSTS (`User`); 
+
+
+
+CREATE TABLE COMMENTS 
+(
+  `Comment_ID`          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `Post`                INT,
+  `User`                VARCHAR(30),
+  `Comment`             TEXT,
+  `Date_Created`        TIMESTAMP,
+  FOREIGN KEY (`Post`) REFERENCES POSTS(`Post_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX COMMENTS_POST_INDEX ON COMMENTS (`Post`);
+
+
+
+
+-- ---------
+-- REACTIONS
+-- ---------
+CREATE TABLE POST_REACTIONS
+(
+  `Reaction_ID`         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `Post`                INT,   
+  `User`                VARCHAR(30),        
+  `Value`               INT,
+  FOREIGN KEY (`Post`) REFERENCES POSTS(`Post_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE UNIQUE INDEX POST_REACTIONS_POST_USER_INDEX ON POST_REACTIONS(`Post`, `User`);
+
+CREATE TABLE COMMENT_REACTIONS
+(
+  `Reaction_ID`         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `Comment`             INT,   
+  `User`                VARCHAR(30),        
+  `Value`               INT,
+  FOREIGN KEY (`Comment`) REFERENCES COMMENTS(`Comment_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`User`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE UNIQUE INDEX COMMENT_REACTIONS_COMMENT_USER_INDEX ON COMMENT_REACTIONS(`Comment`, `User`);
+
+-- --------
+-- MESSAGES
+-- --------
+CREATE TABLE MESSAGES 
+(
+  `Message_ID`        INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `Sender`            VARCHAR(30),
+  `Receiver`          VARCHAR(30),
+  `Message`           TEXT,
+  `Date_Created`      TIMESTAMP,
+  FOREIGN KEY (`Sender`) REFERENCES USERS(`UserName`) ON DELETE CASCADE,
+  FOREIGN KEY (`Receiver`) REFERENCES USERS(`UserName`) ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+CREATE INDEX MESSAGES_SENDER_INDEX ON MESSAGES (`Sender`);
+CREATE INDEX MESSAGES_RECEIVER_INDEX ON MESSAGES (`Receiver`);
+
+
+
+
+CREATE VIEW groups_count AS SELECT Name, Admin, MaxSize, Status, Description, Game, Server, COUNT(sg.Solo) as Size FROM GROUPS g LEFT OUTER JOIN SOLO_GROUP sg ON g.Name = sg.Group;
+
+CREATE VIEW post_reaction_count AS SELECT p.User, p.Post_ID, IFNULL(COUNT(CASE WHEN pr.Value = '1' THEN 1 ELSE NULL END), 0) AS LikeCount,IFNULL(COUNT(CASE WHEN pr.Value = '-1' THEN 1 ELSE NULL END), 0) AS DislikeCount FROM POSTS p left outer JOIN POST_REACTIONS pr ON p.Post_ID = pr.Post GROUP BY p.Post_ID;
+
+CREATE VIEW comment_reaction_count SELECT c.User, c.Comment_ID, IFNULL(COUNT(CASE WHEN cr.Value = '1' THEN 1 ELSE NULL END), 0) AS LikeCount,IFNULL(COUNT(CASE WHEN cr.Value = '-1' THEN 1 ELSE NULL END), 0) AS DislikeCount FROM COMMENTS c left outer JOIN COMMENT_REACTIONS cr ON c.Comment_ID = cr.Comment GROUP BY c.Comment_ID;
